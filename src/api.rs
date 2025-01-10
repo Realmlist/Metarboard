@@ -54,7 +54,7 @@ struct Metar {
     #[serde(rename = "rawOb")]
     raw_ob: String,
     #[serde(rename = "mostRecent")]
-    most_recent: i32,
+    most_recent: Option<i32>,
     lat: Option<f32>,
     lon: Option<f32>,
     elev: Option<i32>,
@@ -72,17 +72,21 @@ pub fn call_api(station: String) -> Result<(), Box<dyn Error>> {
 
     let metars: Vec<Metar> = serde_json::from_str(&response)?;
 
+    // Examples:
     if let Some(metar) = metars.first() {
         // Regular values
         println!("Station Name: {}", metar.name);
         println!("Temperature: {}°C", metar.temp.unwrap_or(0.0)); // On Option<> I need unwrap_or() incase value is null.
         println!("Dewpoint: {}", metar.dewp.unwrap_or(0.0));
         println!("Pressure (altimeter): {} mb", metar.altim.unwrap_or(0));
-        println!(
-            "Winds: {}° at {} knots",
-            metar.wdir.unwrap_or(0),
-            metar.wspd.unwrap_or(0)
-        );
+        if let Some(wdir) = metar.wdir {
+            println!(
+                "Winds: {}° ({}) at {} knots",
+                wdir,
+                degrees_to_direction(wdir),
+                metar.wspd.unwrap_or(0)
+            );
+        }
         println!("Visibility: {} sm", metar.visib.as_deref().unwrap_or("N/A"));
         println!("Ceiling: {}000 feet", metar.elev.unwrap_or(0));
 
@@ -99,4 +103,26 @@ pub fn call_api(station: String) -> Result<(), Box<dyn Error>> {
     }
 
     Ok(())
+}
+
+fn degrees_to_direction(degrees: i32) -> &'static str {
+    match degrees {
+        0..=11 | 349..=360 => "N",
+        12..=33 => "NNE",
+        34..=56 => "NE",
+        57..=78 => "ENE",
+        79..=101 => "E",
+        102..=123 => "ESE",
+        124..=146 => "SE",
+        147..=168 => "SSE",
+        169..=191 => "S",
+        192..=213 => "SSW",
+        214..=236 => "SW",
+        237..=258 => "WSW",
+        259..=281 => "W",
+        282..=303 => "WNW",
+        304..=326 => "NW",
+        327..=348 => "NNW",
+        _ => "Unknown",
+    }
 }
