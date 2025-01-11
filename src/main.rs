@@ -7,9 +7,9 @@ use std::thread;
 use std::time::Duration;
 
 fn main() {
-    //Get config
+    // Get config
     let conf = read_config_file();
-    //Call API
+
     loop {
         // Call API
         if let Err(e) = call_api(conf.station.clone()) {

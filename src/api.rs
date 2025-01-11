@@ -25,9 +25,9 @@ struct Metar {
     wdir: Option<i32>,
     wspd: Option<i32>,
     wgst: Option<i32>,
-    visib: Option<String>,
+    visib: Option<f32>,
     altim: Option<i32>,
-    slp: Option<f32>,
+    //slp: Option<f32>,
     #[serde(rename = "qcField")]
     qc_field: Option<i32>,
     #[serde(rename = "wxString")]
@@ -63,6 +63,8 @@ struct Metar {
     clouds: Option<Vec<Cloud>>,
 }
 pub fn call_api(station: String) -> Result<(), Box<dyn Error>> {
+    // TODO: Select between RAW and JSON
+    // TODO: Select between METAR and TAF
     let url = format!(
         "https://aviationweather.gov/api/data/metar?ids={}&format=json",
         station
@@ -77,7 +79,7 @@ pub fn call_api(station: String) -> Result<(), Box<dyn Error>> {
         // Regular values
         println!("Station Name: {}", metar.name);
         println!("Temperature: {}°C", metar.temp.unwrap_or(0.0)); // On Option<> I need unwrap_or() incase value is null.
-        println!("Dewpoint: {}", metar.dewp.unwrap_or(0.0));
+        println!("Dewpoint: {}°C", metar.dewp.unwrap_or(0.0));
         println!("Pressure (altimeter): {} mb", metar.altim.unwrap_or(0));
         if let Some(wdir) = metar.wdir {
             println!(
@@ -87,7 +89,10 @@ pub fn call_api(station: String) -> Result<(), Box<dyn Error>> {
                 metar.wspd.unwrap_or(0)
             );
         }
-        println!("Visibility: {} sm", metar.visib.as_deref().unwrap_or("N/A"));
+        println!(
+            "Visibility: {} sm",
+            metar.visib.map_or("N/A".to_string(), |v| v.to_string())
+        );
         println!("Ceiling: {}000 feet", metar.elev.unwrap_or(0));
 
         // Clouds
@@ -98,6 +103,9 @@ pub fn call_api(station: String) -> Result<(), Box<dyn Error>> {
         } else {
             println!("No cloud information available.");
         }
+
+        // RAW DATA
+        println!("Raw METAR: {}", metar.raw_ob);
     } else {
         println!("No METAR data available.");
     }

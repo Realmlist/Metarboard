@@ -9,7 +9,9 @@ use std::path::{Path, PathBuf};
 pub struct Config {
     pub interval: u64,
     pub station: String,
-    // TODO: expand later
+    pub format: String, // Raw or JSON
+    pub weather_type: String, // METAR or TAF
+                        // TODO: expand later
 }
 
 pub fn read_config_file() -> Config {
@@ -37,6 +39,8 @@ pub fn read_config_file() -> Config {
         let config: Config = toml::from_str(&config_file).unwrap_or_else(|_| Config {
             interval: 30,
             station: "EHGR".to_string(),
+            format: "raw".to_string(),
+            weather_type: "metar".to_string(),
         });
 
         return config;
@@ -45,6 +49,8 @@ pub fn read_config_file() -> Config {
     Config {
         interval: 30,
         station: "EHGR".to_string(),
+        format: "raw".to_string(),
+        weather_type: "metar".to_string(),
     }
 }
 
@@ -53,6 +59,8 @@ fn create_config(config_file_location: PathBuf) {
     let config = Config {
         interval: 30,
         station: "EHGR".to_string(),
+        format: "raw".to_string(),
+        weather_type: "metar".to_string(),
     };
 
     let toml = match toml::to_string(&config) {
