@@ -68,18 +68,12 @@ pub fn handle_data(response: String, weather_type: String) -> Result<(), Box<dyn
     if weather_type == "metar" {
         let datas: Vec<MetarData> = serde_json::from_str(&response)?;
         if let Some(data) = datas.first() {
-            // Weather Type
-            //println!("Weather type: {}", weather_type_formatted);
-            // RAW DATA
-            //println!("Raw data: {}", data.raw_metar);
-
             // Parse MIL color
             let mil_color = parse_mil_color(&data.raw_metar);
 
             // Clouds
             if let Some(cloud) = data.clouds.as_ref().and_then(|c| c.first()) {
                 let cloud_cover = &cloud.cover;
-                //println!("{} clouds", cloud.cover);
             }
 
             // First line on vesta board
@@ -96,11 +90,6 @@ pub fn handle_data(response: String, weather_type: String) -> Result<(), Box<dyn
     } else if weather_type == "taf" {
         let datas: Vec<TafData> = serde_json::from_str(&response)?;
         if let Some(data) = datas.first() {
-            // Weather Type
-            //println!("Weather type: {}", weather_type_formatted);
-            // RAW DATA
-            //println!("Raw data: {}", data.raw_taf);
-
             // Parse MIL color
             let mil_color = parse_mil_color(&data.raw_taf);
 
@@ -108,7 +97,6 @@ pub fn handle_data(response: String, weather_type: String) -> Result<(), Box<dyn
             if let Some(forecast) = data.fcsts.first() {
                 if let Some(cloud) = forecast.clouds.as_ref().and_then(|c| c.first()) {
                     let cloud_cover = &cloud.cover;
-                    //println!("{} clouds", cloud.cover);
                 }
             }
 
