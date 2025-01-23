@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 chrono = "0.4.39"
 directories = "5.0.1"
+regex = "1.11.1"
 reqwest = { version = "0.12.12", features = ["blocking", "json"] }
 serde = {version ="1.0.217", features=["derive"]}
 serde_json = "1.0.135"
