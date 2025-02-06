@@ -69,12 +69,12 @@ fn calculate_vfr_color_code(metar: &str) -> String {
             _ => 0,
         }
     } else {
-        0
+        7 // If no visibility shown, set visib above 6.
     };
 
     // Extract cloud cover (lowest cloud layer height)
     let cloud_cover_height = if let Some(captures) = cloud_cover_re.captures(metar) {
-        captures[2].parse::<i32>().unwrap()
+        captures[2].parse::<i32>().unwrap() * 100
     } else {
         9999 // No cloud cover (clear)
     };
@@ -83,7 +83,7 @@ fn calculate_vfr_color_code(metar: &str) -> String {
     if visibility >= 6 && cloud_cover_height > 3000 {
         "{66}".to_string() // VFR (Green)
     } else if visibility >= 3
-        && visibility < 6
+        && visibility <= 6
         && cloud_cover_height >= 1000
         && cloud_cover_height <= 3000
     {
@@ -138,13 +138,9 @@ pub fn handle_data(response: String, weather_type: String) -> Result<(), Box<dyn
 
             // First line on vesta board
             println!(
-                "{} VFR{} MIL{} JT{}",
-                weather_type_formatted, vfr, mil_color, julia_time
+                "{} VFR{} MIL{}JT{}\\n{}",
+                weather_type_formatted, vfr, mil_color, julia_time, data.raw_metar
             );
-            // TODO: Currently returns wrong VFR colour code. To fix!
-
-            // Second line on vesta board
-            println!("{}", data.raw_metar);
         } else {
             println!("No METAR data available.");
         }
