@@ -196,7 +196,7 @@ def send_to_vesta():
     # Send to Vestaboard
     rw_client = vesta.ReadWriteClient(settings.api_key)
     encoded_text = vesta.encode_text(formatted.replace("\\", "/"))
-    #assert rw_client.write_message(encoded_text)
+    assert rw_client.write_message(encoded_text)
     return formatted
 
 # Modify the main_loop function to check for stop signal
