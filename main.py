@@ -9,9 +9,13 @@ import httpx
 import vesta
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-from config import settings
+from dynaconf import Dynaconf
 
 # pylint: disable=line-too-long
+settings = Dynaconf(
+    envvar_prefix="DYNACONF",
+    settings_files=['settings.toml', '.secrets.toml'],
+)
 
 # Configure logging (saves to file + prints to console)
 logging.basicConfig(
@@ -24,7 +28,7 @@ logging.basicConfig(
 )
 
 # Graceful shutdown handler
-def shutdown_handler(signum, frame):
+def shutdown_handler(_signum, _frame):
     """Handle shutdown signals (SIGINT, SIGTERM) gracefully."""
     logging.info("Shutting down gracefully...")
     sys.exit(0)
@@ -149,7 +153,7 @@ def send_to_vesta():
     # 0000(JT) TAF DUMP
 
     # Format the data for Vestaboard
-    if settings.weather_type == "TAF":
+    if settings.weather_type.upper() == "TAF":
         formatted = f"{get_julia_time()} {api_data.replace('\n', '')}"
     else:
         formatted = f"MET VFR{get_vfr_color_code()} MIL{parse_mil_color()}JT{get_julia_time()}\n{api_data.replace('\n', '')}"
