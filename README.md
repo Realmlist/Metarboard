@@ -5,6 +5,4 @@ I'm using this project to learn Python, don't expect professional-grade programm
 
 
 ## Installation & usage
-See [`install.sh`](https://github.com/Realmlist/Metarboard/blob/main/install.sh) for installation instructions.
-
-Don't forget to edit the generated `.secrets.toml` file.
+- Build & run the docker container
