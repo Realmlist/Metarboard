@@ -7,15 +7,6 @@ import logging
 import time
 import vesta
 
-# TODO:
-# ✅ 1. Config file (get config items through settings.<key>)
-# ✅ 2. Grab METAR and TAF data
-# ✅ 3. Parse METAR and TAF data
-# ✅ 4. Format data for Vestaboard
-# 5. Send to Vestaboard RW API
-
-rw_client = vesta.ReadWriteClient(settings.api_key) # In .secrets.toml file!
-
 # Configure logging (saves to file + prints to console)
 logging.basicConfig(
     level=logging.INFO,
@@ -40,6 +31,8 @@ def get_api_data() -> str:
     response = httpx.get(url)
     return response.text
 
+api_data = get_api_data()
+
 def get_julia_time() -> str:
     now = datetime.now()
     julia_time = now.strftime("%H%M")
@@ -56,7 +49,7 @@ def parse_mil_color() -> str:
     }
     
     for key, value in color_map.items():
-        if key in get_api_data():
+        if key in api_data:
             return value
     
     return " "
@@ -71,7 +64,7 @@ def get_vfr_color_code():
     ceiling_ft = 9999  # Default high ceiling (VFR)
     visibility_miles = 10.0  # Default good visibility (VFR)
     
-    parts = get_api_data().split()
+    parts = api_data.split()
     
     # Find visibility
     for i, part in enumerate(parts):
@@ -137,9 +130,6 @@ def get_vfr_color_code():
     return white*3 + color
 
 def send_to_vesta():
-    # Get the METAR and TAF data
-    data = get_api_data()
-
     # METAR Vestaboard layout
     # MET VFR0000 MIL0 JT0000
     # METAR DUMP
@@ -149,37 +139,30 @@ def send_to_vesta():
 
     # Format the data for Vestaboard
     if (settings.weather_type == "TAF"):
-        formatted = f"{get_julia_time()} {data.replace('\n', '')}"
+        formatted = f"{get_julia_time()} {api_data.replace('\n', '')}"
     else:
-        formatted = f"MET VFR{get_vfr_color_code()} MIL{parse_mil_color()}JT{get_julia_time()}\\n{data.replace('\n', '')}"
+        formatted = f"MET VFR{get_vfr_color_code()} MIL{parse_mil_color()}JT{get_julia_time()}\\n{api_data.replace('\n', '')}"
 
     template = f'{{"components":[{{"template": "{formatted}"}}]}}'
 
     # Send to Vestaboard
-    rw_client.write(template)
-    return "Success"
-
-# DEBUG
-#print(send_to_vesta())
+    rw_client = vesta.ReadWriteClient(settings.api_key) # In .secrets.toml file
+    rw_client.write_message(template)
+    return f"Success: {template}"
 
 def main_loop():
-    logging.info("Starting Vesta sender loop (1-minute intervals)")
+    logging.info(f"Starting Metarboard loop ({settings.interval}-minute intervals)")
     while True:
-        try:
-            start_time = time.time()
-            
+        try:            
             # Execute the function
             result = send_to_vesta()
-            logging.info(f"Vesta update successful: {result}")
-            
-            # Calculate dynamic sleep to maintain exact 60-second intervals
-            elapsed = time.time() - start_time
-            sleep_time = max(settings.interval*60 - elapsed, 0)
-            time.sleep(sleep_time)
+            logging.info(f"Metarboard update successful: {result}")
+
+            time.sleep(settings.interval * 60)
             
         except Exception as e:
-            logging.error(f"Vesta update failed: {str(e)}", exc_info=True)
-            time.sleep(settings.interval*60)  # Wait before retrying
+            logging.error(f"Metarboard update failed: {str(e)}", exc_info=True)
+            time.sleep(60)  # Wait before retrying
 
 if __name__ == "__main__":
     main_loop()
