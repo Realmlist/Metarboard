@@ -9,10 +9,8 @@ __pycache__
 .idea
 *.log
 *.md
-# Ignore dynaconf secret files
-.secrets.*
+*.db
 
-metarboard.log
 
 NOTES.md
 METAR - TAF LAYOUT.ods

@@ -46,6 +46,7 @@ def index():
 main_loop_thread = None
 stop_main_loop = threading.Event()
 
+# Function to restart the main loop
 def restart_main_loop():
     global main_loop_thread, stop_main_loop
     if main_loop_thread and main_loop_thread.is_alive():
@@ -55,11 +56,13 @@ def restart_main_loop():
     main_loop_thread = threading.Thread(target=main_loop)
     main_loop_thread.start()
 
-# Modify the update function
+# Function to handle the update form submission
 @app.route('/update', methods=['POST'])
 def update():
+    # Update keys
     for key, value in request.form.items():
         update_setting(key, value)
+    # Restart the main loop
     restart_main_loop()
     return redirect(url_for('index'))
 
@@ -83,6 +86,7 @@ class Settings:
 
 settings = Settings()
 
+# Configure logging (saves to file + prints to console)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -92,22 +96,27 @@ logging.basicConfig(
     ]
 )
 
+# Graceful shutdown handler
 def shutdown_handler(_signum, _frame):
     logging.info("Shutting down gracefully...")
     sys.exit(0)
 
+# Register SIGINT (Ctrl+C) and SIGTERM (kill) handlers
 signal.signal(signal.SIGINT, shutdown_handler)
 signal.signal(signal.SIGTERM, shutdown_handler)
 
+# Function to fetch raw METAR/TAF data
 def get_api_data():
     url = f"https://aviationweather.gov/api/data/{settings.weather_type.lower()}?ids={settings.station}&format=raw"
     response = httpx.get(url)
     return response.text
 
+# Function to get the current time
 def get_julia_time():
     now = datetime.now()
     return now.strftime("%H%M")
 
+# Function to parse the METAR/TAF data for military color codes
 def parse_mil_color(api_data):
     color_map = {
         "RED": "{63}",
@@ -122,6 +131,7 @@ def parse_mil_color(api_data):
             return value
     return " "
 
+# Function to get the VFR color code based on visibility and ceiling
 def get_vfr_color_code(api_data):
     ceiling_ft = 9999
     visibility_miles = 10.0
@@ -177,6 +187,7 @@ def get_vfr_color_code(api_data):
                 return color * 4
     return white*3 + color
 
+# Function to send data to Vestaboard
 def send_to_vesta():
     """Send METAR or TAF data to Vestaboard"""
     # METAR Vestaboard layout
@@ -199,7 +210,7 @@ def send_to_vesta():
     assert rw_client.write_message(encoded_text)
     return formatted
 
-# Modify the main_loop function to check for stop signal
+# Main loop to periodically fetch and send data
 def main_loop():
     logging.info("Starting Metarboard loop (%d-minute intervals)", settings.interval)
     while not stop_main_loop.is_set():
@@ -211,6 +222,7 @@ def main_loop():
             logging.error("Metarboard update failed: %s", str(e), exc_info=True)
             stop_main_loop.wait(60)
 
+# Function to initialize the database if it doesn't exist
 def initialize_database():
     if not os.path.exists("config.db"):
         logging.info("Database not found. Initializing...")
