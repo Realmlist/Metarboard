@@ -1,0 +1,19 @@
+[Unit]
+Description=Vestaboard METAR Data Sender
+After=network.target
+
+[Service]
+Type=simple
+User=metarboard
+Group=metarboard
+WorkingDirectory=/path/to/your/script  # Directory containing your Python script
+ExecStart=/usr/bin/python3 /path/to/your/script/main.py
+Restart=always  # Auto-restart on crash
+RestartSec=10   # Wait 10s before restarting
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=metarboard
+Environment="PYTHONUNBUFFERED=1"  # Ensure logs appear immediately
+
+[Install]
+WantedBy=multi-user.target

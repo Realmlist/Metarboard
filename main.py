@@ -1,6 +1,10 @@
 from config import settings
 import httpx
 from datetime import datetime
+import signal
+import sys
+import logging
+import time
 import vesta
 
 # TODO:
@@ -12,6 +16,24 @@ import vesta
 
 rw_client = vesta.ReadWriteClient(settings.api_key) # In .secrets.toml file!
 
+# Configure logging (saves to file + prints to console)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("vesta_sender.log"),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+
+# Graceful shutdown handler
+def shutdown_handler(signum, frame):
+    logging.info("Shutting down gracefully...")
+    sys.exit(0)
+
+# Register SIGINT (Ctrl+C) and SIGTERM (kill) handlers
+signal.signal(signal.SIGINT, shutdown_handler)
+signal.signal(signal.SIGTERM, shutdown_handler)
 
 def get_api_data() -> str:
     url = f"https://aviationweather.gov/api/data/{settings.weather_type.lower()}?ids={settings.station}&format=raw"
@@ -133,10 +155,31 @@ def send_to_vesta():
 
     template = f'{{"components":[{{"template": "{formatted}"}}]}}'
 
-    return template
     # Send to Vestaboard
-    #rw_client.write(template)
+    rw_client.write(template)
+    return "Success"
 
 # DEBUG
-print(get_api_data())
-print(send_to_vesta())
+#print(send_to_vesta())
+
+def main_loop():
+    logging.info("Starting Vesta sender loop (1-minute intervals)")
+    while True:
+        try:
+            start_time = time.time()
+            
+            # Execute the function
+            result = send_to_vesta()
+            logging.info(f"Vesta update successful: {result}")
+            
+            # Calculate dynamic sleep to maintain exact 60-second intervals
+            elapsed = time.time() - start_time
+            sleep_time = max(settings.interval*60 - elapsed, 0)
+            time.sleep(sleep_time)
+            
+        except Exception as e:
+            logging.error(f"Vesta update failed: {str(e)}", exc_info=True)
+            time.sleep(settings.interval*60)  # Wait before retrying
+
+if __name__ == "__main__":
+    main_loop()
