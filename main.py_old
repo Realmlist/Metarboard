@@ -5,17 +5,45 @@ import sys
 import logging
 import time
 from datetime import datetime
+import sqlite3
 import httpx
 import vesta
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
-from dynaconf import Dynaconf
 
-# pylint: disable=line-too-long
-settings = Dynaconf(
-    envvar_prefix="DYNACONF",
-    settings_files=['settings.toml', '.secrets.toml'],
-)
+# Utility function to fetch settings from SQLite
+def get_setting(key):
+    """Fetch a setting from the SQLite database."""
+    conn = sqlite3.connect("config.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT value FROM settings WHERE key = ?", (key,))
+    result = cursor.fetchone()
+    conn.close()
+    if result:
+        return result[0]
+    raise KeyError(f"Setting '{key}' not found in the database.")
+
+class Settings:
+    """Class to manage settings."""
+    @property
+    def weather_type(self):
+        """Get the weather type (METAR or TAF)."""
+        return get_setting("weather_type")
+
+    @property
+    def station(self):
+        """Get the station identifier."""
+        return get_setting("station")
+
+    @property
+    def interval(self):
+        """Get the interval in minutes."""
+        return int(get_setting("interval"))
+
+    @property
+    def api_key(self):
+        """Get the Read/Write API key for Vestaboard."""
+        return get_setting("api_key")
+
+settings = Settings()
 
 # Configure logging (saves to file + prints to console)
 logging.basicConfig(
@@ -159,44 +187,27 @@ def send_to_vesta():
         formatted = f"MET VFR{get_vfr_color_code()} MIL{parse_mil_color()}JT{get_julia_time()}\n{api_data.replace('\n', '')}"
 
     # Send to Vestaboard
-    rw_client = vesta.ReadWriteClient(settings.api_key) # In .secrets.toml file
+    rw_client = vesta.ReadWriteClient(settings.api_key)
     encoded_text = vesta.encode_text(formatted.replace("\\", "/"))
-    assert rw_client.write_message(encoded_text)
+    #assert rw_client.write_message(encoded_text)
     return formatted
-
-class SettingsChangeHandler(FileSystemEventHandler):
-    """Handler for file system events."""
-    def on_modified(self, event):
-        if event.src_path.endswith("settings.toml"):
-            logging.info("settings.toml modified. Restarting program...")
-            #os.execv(sys.executable, ['python'] + sys.argv)
-            sys.exit(0)  # Exit the program to allow the service to restart it
 
 def main_loop():
     """Main program loop"""
     logging.info("Starting Metarboard loop (%d-minute intervals)", settings.interval)
 
-    # Set up file watcher for settings.toml
-    event_handler = SettingsChangeHandler()
-    observer = Observer()
-    observer.schedule(event_handler, path=".", recursive=False)
-    observer.start()
+    while True:
+        try:
+            # Execute the function
+            result = send_to_vesta()
+            logging.info("Metarboard update successful: %s", result)
 
-    try:
-        while True:
-            try:
-                # Execute the function
-                result = send_to_vesta()
-                logging.info("Metarboard update successful: %s", result)
+            time.sleep(settings.interval * 60)
 
-                time.sleep(settings.interval * 60)
+        except Exception as e:
+            logging.error("Metarboard update failed: %s", str(e), exc_info=True)
+            time.sleep(60)  # Wait before retrying
 
-            except Exception as e:
-                logging.error("Metarboard update failed: %s", str(e), exc_info=True)
-                time.sleep(60)  # Wait before retrying
-    finally:
-        observer.stop()
-        observer.join()
 
 if __name__ == "__main__":
     main_loop()
