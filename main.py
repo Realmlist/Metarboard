@@ -7,6 +7,8 @@ import time
 from datetime import datetime
 import httpx
 import vesta
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 from config import settings
 
 # pylint: disable=line-too-long
@@ -16,7 +18,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("vesta_sender.log"),
+        logging.FileHandler("metarboard.log"),
         logging.StreamHandler(sys.stdout)
     ]
 )
@@ -62,7 +64,7 @@ def parse_mil_color() -> str:
 
     return " "
 
-def get_vfr_color_code():
+def get_vfr_color_code() -> str:
     """
     Determine VFR color code from METAR string.
     
@@ -150,29 +152,47 @@ def send_to_vesta():
     if settings.weather_type == "TAF":
         formatted = f"{get_julia_time()} {api_data.replace('\n', '')}"
     else:
-        formatted = f"MET VFR{get_vfr_color_code()} MIL{parse_mil_color()}JT{get_julia_time()}\\n{api_data.replace('\n', '')}"
-
-    template = f'{{"components":[{{"template": "{formatted}"}}]}}'
+        formatted = f"MET VFR{get_vfr_color_code()} MIL{parse_mil_color()}JT{get_julia_time()}\n{api_data.replace('\n', '')}"
 
     # Send to Vestaboard
     rw_client = vesta.ReadWriteClient(settings.api_key) # In .secrets.toml file
-    rw_client.write_message(template)
-    return f"Success: {template}"
+    encoded_text = vesta.encode_text(formatted.replace("\\", "/"))
+    assert rw_client.write_message(encoded_text)
+    return formatted
+
+class SettingsChangeHandler(FileSystemEventHandler):
+    """Handler for file system events."""
+    def on_modified(self, event):
+        if event.src_path.endswith("settings.toml"):
+            logging.info("settings.toml modified. Restarting program...")
+            #os.execv(sys.executable, ['python'] + sys.argv)
+            sys.exit(0)  # Exit the program to allow the service to restart it
 
 def main_loop():
     """Main program loop"""
     logging.info("Starting Metarboard loop (%d-minute intervals)", settings.interval)
-    while True:
-        try:
-            # Execute the function
-            result = send_to_vesta()
-            logging.info("Metarboard update successful: %s", result)
 
-            time.sleep(settings.interval * 60)
+    # Set up file watcher for settings.toml
+    event_handler = SettingsChangeHandler()
+    observer = Observer()
+    observer.schedule(event_handler, path=".", recursive=False)
+    observer.start()
 
-        except Exception as e:
-            logging.error("Metarboard update failed: %s", str(e), exc_info=True)
-            time.sleep(60)  # Wait before retrying
+    try:
+        while True:
+            try:
+                # Execute the function
+                result = send_to_vesta()
+                logging.info("Metarboard update successful: %s", result)
+
+                time.sleep(settings.interval * 60)
+
+            except Exception as e:
+                logging.error("Metarboard update failed: %s", str(e), exc_info=True)
+                time.sleep(60)  # Wait before retrying
+    finally:
+        observer.stop()
+        observer.join()
 
 if __name__ == "__main__":
     main_loop()

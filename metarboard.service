@@ -9,7 +9,6 @@ Group=metarboard
 WorkingDirectory=/opt/realmlist/metarboard  # Directory containing your Python script
 ExecStart=/usr/bin/python3 /opt/realmlist/metarboard/main.py
 Restart=always  # Auto-restart on crash
-RestartSec=10   # Wait 10s before restarting
 StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier=metarboard
