@@ -37,11 +37,27 @@ def get_setting(key):
         return result[0]
     raise KeyError(f"Setting '{key}' not found in the database.")
 
+# Function to initialize the database if it doesn't exist
+def initialize_database():
+    if not os.path.exists("config.db"):
+        logging.info("Database not found. Initializing...")
+        os.system("python init_db.py")
+
 # Flask routes
 @app.route('/')
 def index():
     settings = get_all_settings()
     return render_template('index.html', settings=settings)
+
+# Function to handle the update form submission
+@app.route('/update', methods=['POST'])
+def update():
+    # Update keys
+    for key, value in request.form.items():
+        update_setting(key, value)
+    # Restart the main loop
+    restart_main_loop()
+    return redirect(url_for('index'))
 
 main_loop_thread = None
 stop_main_loop = threading.Event()
@@ -56,17 +72,7 @@ def restart_main_loop():
     main_loop_thread = threading.Thread(target=main_loop)
     main_loop_thread.start()
 
-# Function to handle the update form submission
-@app.route('/update', methods=['POST'])
-def update():
-    # Update keys
-    for key, value in request.form.items():
-        update_setting(key, value)
-    # Restart the main loop
-    restart_main_loop()
-    return redirect(url_for('index'))
-
-# METAR/TAF processing functions
+# Define a class to hold settings
 class Settings:
     @property
     def weather_type(self):
@@ -91,7 +97,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        #logging.FileHandler("metarboard.log"),
+        #logging.FileHandler("metarboard.log"), # Uncomment to save to file
         logging.StreamHandler(sys.stdout)
     ]
 )
@@ -107,35 +113,43 @@ signal.signal(signal.SIGTERM, shutdown_handler)
 
 # Function to fetch raw METAR/TAF data
 def get_api_data():
+    """Fetch raw METAR or TAF data from the Aviation Weather API"""
     url = f"https://aviationweather.gov/api/data/{settings.weather_type.lower()}?ids={settings.station}&format=raw"
     response = httpx.get(url)
     return response.text
 
 # Function to get the current time
-def get_julia_time():
+def get_time():
     now = datetime.now()
     return now.strftime("%H%M")
 
 # Function to parse the METAR/TAF data for military color codes
 def parse_mil_color(api_data):
+    """Parse METAR/TAF data for military color codes"""
     color_map = {
         "RED": "{63}",
         "AMB": "{64}",
         "YLO": "{65}",
         "GRN": "{66}",
-        "WHT": "{71}",
+        "WHT": "{69}",
         "BLU": "{67}"
     }
     for key, value in color_map.items():
         if key in api_data:
             return value
-    return " "
+    return " " # Return blank if no color found
 
 # Function to get the VFR color code based on visibility and ceiling
 def get_vfr_color_code(api_data):
+    """Get VFR color code based on visibility and ceiling"""
+
+    # Initialize default values
     ceiling_ft = 9999
     visibility_miles = 10.0
+
     parts = api_data.split()
+
+    # Parse visibility and ceiling from the METAR/TAF data
     for i, part in enumerate(parts):
         if 'SM' in part:
             try:
@@ -155,6 +169,8 @@ def get_vfr_color_code(api_data):
                 break
             except ValueError:
                 continue
+
+    # Parse cloud cover and ceiling from the METAR/TAF data
     cloud_cover = None
     for part in parts:
         if part.startswith(('FEW', 'SCT', 'BKN', 'OVC', 'OVX', 'VV')):
@@ -166,6 +182,8 @@ def get_vfr_color_code(api_data):
                 continue
         elif part in ['NSC', 'CLR', 'SKC', 'CAVOK']:
             ceiling_ft = 9999
+
+    # Determine color based on visibility and ceiling
     if ceiling_ft < 500 or visibility_miles < 1:
         color = '{68}'
     elif ceiling_ft < 1000 or visibility_miles < 3:
@@ -174,8 +192,10 @@ def get_vfr_color_code(api_data):
         color = '{67}'
     else:
         color = '{66}'
-    white = '{69}'
+    
+    # Determine colour pattern based on cloud cover
     if cloud_cover:
+        white = '{69}'
         match cloud_cover:
             case "FEW":
                 return white*3 + color
@@ -200,9 +220,9 @@ def send_to_vesta():
     # Format the data for Vestaboard
     api_data = get_api_data()
     if settings.weather_type.upper() == "TAF":
-        formatted = f"{get_julia_time()} {api_data.replace('\n', '')}"
+        formatted = f"{get_time()} {api_data.replace('\n', '')}"
     else:
-        formatted = f"MET VFR{get_vfr_color_code(api_data)} MIL{parse_mil_color(api_data)}JT{get_julia_time()}\n{api_data.replace('\n', '')}"
+        formatted = f"MET VFR{get_vfr_color_code(api_data)} MIL{parse_mil_color(api_data)}JT{get_time()}\n{api_data.replace('\n', '')}"
 
     # Send to Vestaboard
     rw_client = vesta.ReadWriteClient(settings.api_key)
@@ -221,12 +241,6 @@ def main_loop():
         except Exception as e:
             logging.error("Metarboard update failed: %s", str(e), exc_info=True)
             stop_main_loop.wait(60)
-
-# Function to initialize the database if it doesn't exist
-def initialize_database():
-    if not os.path.exists("config.db"):
-        logging.info("Database not found. Initializing...")
-        os.system("python init_db.py")
 
 if __name__ == '__main__':
     initialize_database()
