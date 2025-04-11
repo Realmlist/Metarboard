@@ -5,4 +5,18 @@ I'm using this project to learn Python, don't expect professional-grade programm
 
 
 ## Installation & usage
-- Build & run the docker container
+Run the pre-built docker container [`realmlist/metarboard`](https://hub.docker.com/r/realmlist/metarboard) or build it yourself.
+
+### Docker compose:
+```YAML
+services:
+  metarboard:
+    image: realmlist/metarboard:latest
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+    environment:
+      - FLASK_ENV=production
+    command: python app.py
+```
