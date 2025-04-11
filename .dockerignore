@@ -1,5 +1,6 @@
 # Ignore unnecessary files and directories
 .git
+.gitignore
 __pycache__
 *.pyc
 *.pyo
@@ -11,6 +12,8 @@ __pycache__
 *.md
 *.db
 
+docker-build.sh
+docker-compose.yml
 
 NOTES.md
 METAR - TAF LAYOUT.ods

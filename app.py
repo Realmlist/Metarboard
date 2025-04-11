@@ -244,6 +244,6 @@ def main_loop():
 
 if __name__ == '__main__':
     initialize_database()
-    flask_thread = threading.Thread(target=lambda: app.run(debug=False, use_reloader=False))
+    flask_thread = threading.Thread(target=lambda: app.run(host='0.0.0.0', debug=True, use_reloader=False))
     flask_thread.start()
     restart_main_loop()

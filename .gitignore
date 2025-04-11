@@ -11,6 +11,7 @@ __pycache__
 *.md
 *.db
 
+docker-build.sh
 
 NOTES.md
 METAR - TAF LAYOUT.ods
