@@ -12,6 +12,7 @@ Run the pre-built docker container [`realmlist/metarboard`](https://hub.docker.c
 services:
   metarboard:
     image: realmlist/metarboard:latest
+    restart: unless-stopped
     ports:
       - "5000:5000"
     volumes:
