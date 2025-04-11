@@ -15,8 +15,6 @@ services:
     restart: unless-stopped
     ports:
       - "5000:5000"
-    volumes:
-      - .:/app
     environment:
       - FLASK_ENV=production
     command: python app.py
