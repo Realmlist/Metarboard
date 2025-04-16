@@ -16,8 +16,7 @@ def initialize_database():
     default_settings = {
         "weather_type": "METAR",
         "station": "EHGR",
-        "interval": "5",
-        "api_key": "your_api_key_here"
+        "interval": "5"
     }
 
     for key, value in default_settings.items():

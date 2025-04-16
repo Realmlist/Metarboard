@@ -88,7 +88,7 @@ class Settings:
 
     @property
     def api_key(self):
-        return get_setting("api_key")
+        return os.getenv("API_KEY", "")  # Read API_KEY from environment variable
 
 settings = Settings()
 
