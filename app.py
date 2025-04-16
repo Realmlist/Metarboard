@@ -4,7 +4,6 @@ import signal
 import sys
 import logging
 from datetime import datetime
-import pytz
 import httpx
 import vesta
 import threading
@@ -121,7 +120,7 @@ def get_api_data():
 
 # Function to get the current time
 def get_time():
-    now = datetime.now(pytz.timezone("Europe/Amsterdam"))
+    now = datetime.now()
     return now.strftime("%H%M")
 
 # Function to parse the METAR/TAF data for military color codes

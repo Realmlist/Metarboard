@@ -17,5 +17,6 @@ services:
       - "5000:5000"
     environment:
       - FLASK_ENV=production
+      - TZ=Europe/Amsterdam
     command: python app.py
 ```
