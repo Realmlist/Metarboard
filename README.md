@@ -18,6 +18,6 @@ services:
     environment:
       - FLASK_ENV=production
       - TZ=Europe/Amsterdam
-      - API_KEY=your_api_key_here
+      - API_KEY=<your_read_write_api_key_here>
     command: python app.py
 ```
