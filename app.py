@@ -234,7 +234,7 @@ def send_to_vesta():
     else:
         formatted = f"MET {get_vfr_color_code(api_data)}MIL{parse_mil_color(api_data)}JT{get_time()}\n{api_data.replace('\n', '')}"
 
-    print(f"Formatted data: {formatted}")
+    logging.info(f"Formatted data: {formatted}")
     # Send to Vestaboard
     rw_client = vesta.ReadWriteClient(settings.api_key)
     encoded_text = vesta.encode_text(formatted.replace("\\", "/"))
