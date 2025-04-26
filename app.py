@@ -192,20 +192,30 @@ def get_vfr_color_code(api_data):
         color = '{67}'
     else:
         color = '{66}'
+
+    # Determine name based on visibility
+    if visibility_miles < 1:
+        name = "LIFR"
+    elif visibility_miles < 3:
+        name = "IFR "
+    elif visibility_miles < 5:
+        name = "MVFR"
+    else:
+        name = "VFR "
     
     # Determine colour pattern based on cloud cover
     if cloud_cover:
         white = '{69}'
         match cloud_cover:
             case "FEW":
-                return white*3 + color
+                return  name + white*3 + color
             case "SCT":
-                return white*2 + color*2
+                return  name + white*2 + color*2
             case "BKN":
-                return white + color*3
+                return  name + white + color*3
             case "OVC" | "OVX" | "VV":
                 return color * 4
-    return white*3 + color
+    return name + white*3 + color
 
 # Function to send data to Vestaboard
 def send_to_vesta():
@@ -222,8 +232,9 @@ def send_to_vesta():
     if settings.weather_type.upper() == "TAF":
         formatted = f"{get_time()} {api_data.replace('\n', '')}"
     else:
-        formatted = f"MET VFR{get_vfr_color_code(api_data)} MIL{parse_mil_color(api_data)}JT{get_time()}\n{api_data.replace('\n', '')}"
+        formatted = f"MET {get_vfr_color_code(api_data)}MIL{parse_mil_color(api_data)}JT{get_time()}\n{api_data.replace('\n', '')}"
 
+    print(f"Formatted data: {formatted}")
     # Send to Vestaboard
     rw_client = vesta.ReadWriteClient(settings.api_key)
     encoded_text = vesta.encode_text(formatted.replace("\\", "/"))
