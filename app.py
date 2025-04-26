@@ -183,26 +183,20 @@ def get_vfr_color_code(api_data):
         elif part in ['NSC', 'CLR', 'SKC', 'CAVOK']:
             ceiling_ft = 9999
 
-    # Determine color based on visibility and ceiling
+    # Determine name and color based on visibility and ceiling
     if ceiling_ft < 500 or visibility_miles < 1:
+        name = "LIFR"
         color = '{68}'
     elif ceiling_ft < 1000 or visibility_miles < 3:
+        name = "IFR "
         color = '{63}'
     elif ceiling_ft <= 3000 or visibility_miles <= 5:
+        name = "MVFR"
         color = '{67}'
     else:
-        color = '{66}'
-
-    # Determine name based on visibility
-    if visibility_miles < 1:
-        name = "LIFR"
-    elif visibility_miles < 3:
-        name = "IFR "
-    elif visibility_miles < 5:
-        name = "MVFR"
-    else:
         name = "VFR "
-    
+        color = '{66}'
+ 
     # Determine colour pattern based on cloud cover
     if cloud_cover:
         white = '{69}'
