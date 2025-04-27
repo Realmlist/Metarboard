@@ -146,6 +146,7 @@ def get_vfr_color_code(api_data):
     # Initialize default values
     ceiling_ft = 9999
     visibility_miles = 10.0
+    white = "{69}"
 
     parts = api_data.split()
 
@@ -199,7 +200,6 @@ def get_vfr_color_code(api_data):
  
     # Determine colour pattern based on cloud cover
     if cloud_cover:
-        white = '{69}'
         match cloud_cover:
             case "FEW":
                 return  name + white*3 + color
@@ -227,8 +227,12 @@ def send_to_vesta():
         formatted = f"{get_time()} {api_data.replace('\n', '')}"
     else:
         formatted = f"MET {get_vfr_color_code(api_data)}MIL{parse_mil_color(api_data)}JT{get_time()}\n{api_data.replace('\n', '')}"
+    
+    # Log the formatted data
+    logging.info("-----------Formatted data-----------")
+    logging.info(formatted)
+    logging.info("------------------------------------")
 
-    logging.info(f"Formatted data: {formatted}")
     # Send to Vestaboard
     rw_client = vesta.ReadWriteClient(settings.api_key)
     encoded_text = vesta.encode_text(formatted.replace("\\", "/"))
