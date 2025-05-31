@@ -208,7 +208,7 @@ def get_vfr_color_code(api_data):
             case "BKN":
                 return  name + white + color*3
             case "OVC" | "OVX" | "VV":
-                return color * 4
+                return name + color*4
     return name + white*3 + color
 
 # Function to send data to Vestaboard
