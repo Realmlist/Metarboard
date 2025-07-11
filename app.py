@@ -181,7 +181,7 @@ def get_vfr_color_code(api_data):
                 break
             except (ValueError, IndexError):
                 continue
-        elif part in ['NSC', 'CLR', 'SKC', 'CAVOK']:
+        elif part in ['NSC', 'CLR', 'SKC', 'CAVOK', 'NCD']:
             ceiling_ft = 9999
 
     # Determine name and color based on visibility and ceiling
@@ -200,15 +200,15 @@ def get_vfr_color_code(api_data):
  
     # Determine colour pattern based on cloud cover
     if cloud_cover:
-        match cloud_cover:
-            case "FEW":
-                return  name + white*3 + color
-            case "SCT":
-                return  name + white*2 + color*2
-            case "BKN":
-                return  name + white + color*3
+        match cloud_cover:            
             case "OVC" | "OVX" | "VV":
                 return name + color*4
+            case "BKN":
+                return  name + white + color*3
+            case "SCT":
+                return  name + white*2 + color*2
+            case "FEW":
+                return  name + white*3 + color
     return name + white*3 + color
 
 # Function to send data to Vestaboard
