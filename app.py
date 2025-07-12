@@ -30,7 +30,7 @@ def update_setting(key, value):
 def get_setting(key):
     conn = sqlite3.connect("config.db")
     cursor = conn.cursor()
-    cursor.execute("SELECT value FROM settings WHERE key = ?", (key,))
+    cursor.execute("SELECT value FROM settings WHERE key = ?", (key))
     result = cursor.fetchone()
     conn.close()
     if result:
